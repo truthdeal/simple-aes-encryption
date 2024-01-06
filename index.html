@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES Encrypt/Decrypt</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 90%;
+            max-width: 1000px; 
+            margin-bottom: 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .title {
+            background-color: #1c1c1c;
+            padding: 10px 20px;
+            border-bottom: 3px solid #4CAF50;
+        }
+        .input-group {
+            background-color: #1c1c1c;
+            padding: 20px;
+            padding-bottom: 35px;
+            display: flex;
+            flex-direction: column; 
+            gap: 10px; 
+            border-bottom: 3px solid #4CAF50;
+        }
+        .input-group label {
+            text-align: left;
+        }
+        .input-group input[type="text"],
+        .input-group textarea {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 6px;
+            background-color: #333;
+            color: white;
+        }
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .input-group input[type="button"] {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            align-self: start; 
+        }
+        .output-textarea {
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 15px;
+            min-height: 100px; 
+            resize: vertical; 
+            width: 100%; 
+            box-sizing: border-box; 
+            margin-bottom: 10px; 
+        }
+        .output-container {
+            background-color: #1c1c1c;
+            padding: 20px;
+            word-wrap: break-word;
+            word-break: break-all;
+        }
+        .copy-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin-top: 10px;
+            cursor: pointer;
+            align-self: start; 
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title"><h2>AES Encryption</h2></div>
+        <div class="input-group">
+            <label for="encrypt-key">Key (Must be 32 characters long)</label>
+            <input type="text" id="encrypt-key" placeholder="Key">
+            <label for="encrypt-iv">IV (Must be 16 characters long)</label>
+            <input type="text" id="encrypt-iv" placeholder="IV">
+            <label for="encrypt-input">Text to encrypt:</label>
+            <textarea id="encrypt-input" placeholder="Enter text here"></textarea>
+            <input type="button" value="Encrypt" onclick="encrypt()">
+        </div>
+        <div class="output-container">
+            <label for="encrypt-output">Output:</label>
+            <textarea id="encrypt-output" class="output-textarea" placeholder="Output will appear here" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('encrypt-output')">Copy</button>
+        </div>
+        <div id="encrypt-error" class="error-message"></div>
+    </div>
+
+    <div class="container">
+        <div class="title"><h2>AES Decryption</h2></div>
+        <div class="input-group">
+            <label for="decrypt-key">Key (Must be 32 characters long)</label>
+            <input type="text" id="decrypt-key" placeholder="Key">
+            <label for="decrypt-iv">IV (Must be 16 characters long)</label>
+            <input type="text" id="decrypt-iv" placeholder="IV">
+            <label for="decrypt-input">Text to decrypt:</label>
+            <textarea id="decrypt-input" placeholder="Enter encrypted text here"></textarea>
+            <input type="button" value="Decrypt" onclick="decrypt()">
+        </div>
+        <div class="output-container">
+            <label for="decrypt-output">Output:</label>
+            <textarea id="decrypt-output" class="output-textarea" placeholder="Output will appear here" readonly></textarea>
+            <button class="copy-button" onclick="copyToClipboard('decrypt-output')">Copy</button>
+        </div>
+        <div id="decrypt-error" class="error-message"></div>
+    </div>
+
+    <script>
+        async function encrypt() {
+            const key = document.getElementById('encrypt-key').value;
+            const iv = document.getElementById('encrypt-iv').value;
+            const message = document.getElementById('encrypt-input').value;
+
+            if (key && iv && message) {
+                const encodedMessage = new TextEncoder().encode(message);
+                const encodedKey = new TextEncoder().encode(key);
+                const encodedIV = new TextEncoder().encode(iv);
+
+                try {
+                    const cryptoKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        encodedKey,
+                        { name: "AES-CBC", length: 256 },
+                        false,
+                        ["encrypt"]
+                    );
+
+                    const encrypted = await window.crypto.subtle.encrypt(
+                        { name: "AES-CBC", iv: encodedIV.slice(0, 16) },
+                        cryptoKey,
+                        encodedMessage
+                    );
+
+                    document.getElementById('encrypt-output').value = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById('encrypt-output').value = 'Encryption error!';
+                }
+            } else {
+                document.getElementById('encrypt-output').value = 'Please fill in all fields.';
+            }
+        }
+
+        async function decrypt() {
+            const key = document.getElementById('decrypt-key').value;
+            const iv = document.getElementById('decrypt-iv').value;
+            const message = document.getElementById('decrypt-input').value;
+
+            if (key && iv && message) {
+                const encodedKey = new TextEncoder().encode(key);
+                const encodedIV = new TextEncoder().encode(iv);
+
+                try {
+                    const cryptoKey = await window.crypto.subtle.importKey(
+                        "raw",
+                        encodedKey,
+                        { name: "AES-CBC", length: 256 },
+                        false,
+                        ["decrypt"]
+                    );
+
+                    const decrypted = await window.crypto.subtle.decrypt(
+                        { name: "AES-CBC", iv: encodedIV.slice(0, 16) },
+                        cryptoKey,
+                        new Uint8Array(atob(message).split("").map(c => c.charCodeAt(0)))
+                    );
+
+                    document.getElementById('decrypt-output').value = new TextDecoder().decode(decrypted);
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById('decrypt-output').value = 'Decryption error!';
+                }
+            } else {
+                document.getElementById('decrypt-output').value = 'Please fill in all fields.';
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).value;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Copied to clipboard!");
+            }).catch(err => {
+                alert("Error in copying text: ", err);
+            });
+        }
+    </script>
+</body>
+</html>
